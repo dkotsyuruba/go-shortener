@@ -6,7 +6,7 @@ type MockShortener struct {
 	mock.Mock
 }
 
-func (m *MockShortener) GenerateID() string {
+func (m *MockShortener) GenerateID() (string, error) {
 	args := m.Called()
-	return args.String(0)
+	return args.String(0), nil
 }

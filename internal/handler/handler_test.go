@@ -90,7 +90,7 @@ func TestGetFailure(t *testing.T) {
 	resp := recorder.Result()
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func readResponse(body io.Reader) string {

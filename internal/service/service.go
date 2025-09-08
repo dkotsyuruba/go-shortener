@@ -27,14 +27,17 @@ func NewService(
 }
 
 func (s *Service) Shorten(originalURL string) (string, error) {
-	id := s.shortener.GenerateID()
+	id, err := s.shortener.GenerateID()
+	if err != nil {
+		return "", err
+	}
 
 	newLink := &model.Link{
 		ID:          id,
 		OriginalURL: originalURL,
 	}
 
-	err := s.repo.Save(newLink)
+	err = s.repo.Save(newLink)
 	if err != nil {
 		return "", err
 	}

@@ -48,7 +48,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	originalURL, err := h.service.Get(id)
 	if err != nil {
-		http.Error(w, "Not found", http.StatusBadRequest)
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
 
