@@ -26,12 +26,12 @@ func NewService(
 	}
 }
 
-func (s *Service) Shorten(originalUrl string) (string, error) {
-	id := s.shortener.GenerateId()
+func (s *Service) Shorten(originalURL string) (string, error) {
+	id := s.shortener.GenerateID()
 
 	newLink := &model.Link{
-		Id:          id,
-		OriginalUrl: originalUrl,
+		ID:          id,
+		OriginalURL: originalURL,
 	}
 
 	err := s.repo.Save(newLink)
@@ -39,14 +39,14 @@ func (s *Service) Shorten(originalUrl string) (string, error) {
 		return "", err
 	}
 
-	return s.cfg.BaseUrl + "/" + id, nil
+	return s.cfg.BaseURL + "/" + id, nil
 }
 
 func (s *Service) Get(id string) (string, error) {
-	link, found := s.repo.FindById(id)
+	link, found := s.repo.FindByID(id)
 	if !found {
-		return "", fmt.Errorf("no such short Url (%s)", id)
+		return "", fmt.Errorf("no such short URL (%s)", id)
 	}
 
-	return link.OriginalUrl, nil
+	return link.OriginalURL, nil
 }

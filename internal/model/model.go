@@ -1,8 +1,8 @@
 package model
 
 type Link struct {
-	Id          string `json:"id"`
-	OriginalUrl string `json:"original_url"`
+	ID          string `json:"id"`
+	OriginalURL string `json:"original_url"`
 }
 
 type ServerConfig struct {
@@ -10,5 +10,5 @@ type ServerConfig struct {
 }
 
 type ServiceConfig struct {
-	BaseUrl string
+	BaseURL string
 }

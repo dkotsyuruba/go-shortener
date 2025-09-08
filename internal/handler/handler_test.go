@@ -28,6 +28,7 @@ func TestShortenSuccess(t *testing.T) {
 
 	handler.Shorten(recorder, request)
 	resp := recorder.Result()
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 	assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
@@ -46,6 +47,7 @@ func TestShortenFailure(t *testing.T) {
 
 	handler.Shorten(recorder, request)
 	resp := recorder.Result()
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }
@@ -65,6 +67,7 @@ func TestGetSuccess(t *testing.T) {
 
 	handler.Get(recorder, request)
 	resp := recorder.Result()
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 	assert.Equal(t, "https://example.com/test-url", resp.Header.Get("Location"))
@@ -85,6 +88,7 @@ func TestGetFailure(t *testing.T) {
 
 	handler.Get(recorder, request)
 	resp := recorder.Result()
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }

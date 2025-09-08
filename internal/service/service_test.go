@@ -15,85 +15,85 @@ import (
 
 func TestShortenSuccess(t *testing.T) {
 	config := &model.ServiceConfig{
-		BaseUrl: "http://example.com",
+		BaseURL: "http://example.com",
 	}
 
-	originalUrl := "https://google.com/search?q=test"
+	originalURL := "https://google.com/search?q=test"
 	id := "abc123"
 
 	mockRepo := new(mocks.MockRepository)
 	mockRepo.On("Save", mock.AnythingOfType("*model.Link")).Return(nil)
 	mockShortener := new(mocks.MockShortener)
-	mockShortener.On("GenerateId").Return(id)
+	mockShortener.On("GenerateID").Return(id)
 
 	s := service.NewService(mockRepo, config, mockShortener)
 
-	shortenedUrl, err := s.Shorten(originalUrl)
+	shortenedURL, err := s.Shorten(originalURL)
 	require.NoError(t, err)
 
-	expectedShortenedUrl := config.BaseUrl + "/" + id
-	assert.Equal(t, expectedShortenedUrl, shortenedUrl)
+	expectedShortenedURL := config.BaseURL + "/" + id
+	assert.Equal(t, expectedShortenedURL, shortenedURL)
 }
 
 func TestShortenFailure(t *testing.T) {
 	config := &model.ServiceConfig{
-		BaseUrl: "http://example.com",
+		BaseURL: "http://example.com",
 	}
 
-	originalUrl := "https://google.com/search?q=test"
+	originalURL := "https://google.com/search?q=test"
 	id := "abc123"
 
 	mockRepo := new(mocks.MockRepository)
 	mockRepo.On("Save", mock.AnythingOfType("*model.Link")).Return(errors.New("database failure"))
 	mockShortener := new(mocks.MockShortener)
-	mockShortener.On("GenerateId").Return(id)
+	mockShortener.On("GenerateID").Return(id)
 
 	s := service.NewService(mockRepo, config, mockShortener)
 
-	shortenedUrl, err := s.Shorten(originalUrl)
+	shortenedURL, err := s.Shorten(originalURL)
 	require.Error(t, err)
-	assert.Empty(t, shortenedUrl)
+	assert.Empty(t, shortenedURL)
 }
 
 func TestGetSuccess(t *testing.T) {
 	config := &model.ServiceConfig{
-		BaseUrl: "http://example.com",
+		BaseURL: "http://example.com",
 	}
 
 	id := "abc123"
-	originalUrl := "https://google.com/search?q=test"
+	originalURL := "https://google.com/search?q=test"
 
 	mockRepo := new(mocks.MockRepository)
-	mockRepo.On("FindById", id).Return(&model.Link{
-		Id:          id,
-		OriginalUrl: originalUrl,
+	mockRepo.On("FindByID", id).Return(&model.Link{
+		ID:          id,
+		OriginalURL: originalURL,
 	}, true)
 
 	mockShortener := new(mocks.MockShortener)
-	mockShortener.On("GenerateId").Return(id)
+	mockShortener.On("GenerateID").Return(id)
 
 	s := service.NewService(mockRepo, config, mockShortener)
 
-	actualUrl, err := s.Get(id)
+	actualURL, err := s.Get(id)
 	require.NoError(t, err)
-	assert.Equal(t, originalUrl, actualUrl)
+	assert.Equal(t, originalURL, actualURL)
 }
 
 func TestGetNotFound(t *testing.T) {
 	config := &model.ServiceConfig{
-		BaseUrl: "http://example.com",
+		BaseURL: "http://example.com",
 	}
 
 	id := "nonexistent-id"
 
 	mockRepo := new(mocks.MockRepository)
-	mockRepo.On("FindById", id).Return((*model.Link)(nil), false)
+	mockRepo.On("FindByID", id).Return((*model.Link)(nil), false)
 	mockShortener := new(mocks.MockShortener)
-	mockShortener.On("GenerateId").Return(id)
+	mockShortener.On("GenerateID").Return(id)
 
 	s := service.NewService(mockRepo, config, mockShortener)
 
-	actualUrl, err := s.Get(id)
+	actualURL, err := s.Get(id)
 	require.Error(t, err)
-	assert.Empty(t, actualUrl)
+	assert.Empty(t, actualURL)
 }

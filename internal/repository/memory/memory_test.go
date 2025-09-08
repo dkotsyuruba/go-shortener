@@ -13,14 +13,14 @@ func TestSave(t *testing.T) {
 	repo := NewMemoryRepository()
 
 	link := &model.Link{
-		Id:          "abc123",
-		OriginalUrl: "https://example.com",
+		ID:          "abc123",
+		OriginalURL: "https://example.com",
 	}
 
 	err := repo.Save(link)
 	require.NoError(t, err)
 
-	foundLink, ok := repo.FindById("abc123")
+	foundLink, ok := repo.FindByID("abc123")
 	require.True(t, ok)
 	assert.Equal(t, link, foundLink)
 }
@@ -29,8 +29,8 @@ func TestSaveDuplicateKey(t *testing.T) {
 	repo := NewMemoryRepository()
 
 	link := &model.Link{
-		Id:          "abc123",
-		OriginalUrl: "https://example.com",
+		ID:          "abc123",
+		OriginalURL: "https://example.com",
 	}
 
 	err := repo.Save(link)
@@ -41,26 +41,26 @@ func TestSaveDuplicateKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "duplicate key")
 }
 
-func TestFindByIdNotFound(t *testing.T) {
+func TestFindByIDNotFound(t *testing.T) {
 	repo := NewMemoryRepository()
 
-	link, ok := repo.FindById("nonexistent-id")
+	link, ok := repo.FindByID("nonexistent-id")
 	assert.Nil(t, link)
 	assert.False(t, ok)
 }
 
-func TestFindByIdSuccess(t *testing.T) {
+func TestFindByIDSuccess(t *testing.T) {
 	repo := NewMemoryRepository()
 
 	link := &model.Link{
-		Id:          "def456",
-		OriginalUrl: "https://another-site.org",
+		ID:          "def456",
+		OriginalURL: "https://another-site.org",
 	}
 
 	err := repo.Save(link)
 	require.NoError(t, err)
 
-	foundLink, ok := repo.FindById("def456")
+	foundLink, ok := repo.FindByID("def456")
 	require.True(t, ok)
 	assert.Equal(t, link, foundLink)
 }

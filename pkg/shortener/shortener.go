@@ -3,12 +3,12 @@ package shortener
 import "crypto/rand"
 
 type ShortenerService interface {
-	GenerateId() string
+	GenerateID() string
 }
 
 type RealShortenerService struct{}
 
-func (rss *RealShortenerService) GenerateId() string {
+func (rss *RealShortenerService) GenerateID() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const length = 8
 

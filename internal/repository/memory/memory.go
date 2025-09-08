@@ -22,16 +22,16 @@ func (m *MemoryRepository) Save(link *model.Link) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, exists := m.data[link.Id]; exists {
+	if _, exists := m.data[link.ID]; exists {
 		return errors.New("duplicate key")
 	}
 
-	m.data[link.Id] = link
+	m.data[link.ID] = link
 
 	return nil
 }
 
-func (m *MemoryRepository) FindById(id string) (*model.Link, bool) {
+func (m *MemoryRepository) FindByID(id string) (*model.Link, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 

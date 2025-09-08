@@ -14,7 +14,7 @@ func (mr *MockRepository) Save(link *model.Link) error {
 	return args.Error(0)
 }
 
-func (mr *MockRepository) FindById(id string) (*model.Link, bool) {
+func (mr *MockRepository) FindByID(id string) (*model.Link, bool) {
 	args := mr.Called(id)
 	return args.Get(0).(*model.Link), args.Bool(1)
 }

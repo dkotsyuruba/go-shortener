@@ -7,7 +7,7 @@ import (
 
 type Repository interface {
 	Save(link *model.Link) error
-	FindById(id string) (*model.Link, bool)
+	FindByID(id string) (*model.Link, bool)
 }
 
 func NewRepository() Repository {

@@ -9,7 +9,7 @@ import (
 )
 
 type Service interface {
-	Shorten(Url string) (string, error)
+	Shorten(url string) (string, error)
 	Get(id string) (string, error)
 }
 
@@ -24,34 +24,34 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
-	originalUrl, err := io.ReadAll(r.Body)
+	originalURL, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
-	if err != nil || len(originalUrl) == 0 {
+	if err != nil || len(originalURL) == 0 {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	shortenUrl, err := h.service.Shorten(string(originalUrl))
+	shortenURL, err := h.service.Shorten(string(originalURL))
 	if err != nil {
-		http.Error(w, "Error shortening Url", http.StatusInternalServerError)
+		http.Error(w, "Error shortening URL", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Content-Length", strconv.Itoa(len(shortenUrl)))
+	w.Header().Set("Content-Length", strconv.Itoa(len(shortenURL)))
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortenUrl))
+	w.Write([]byte(shortenURL))
 }
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	originalUrl, err := h.service.Get(id)
+	originalURL, err := h.service.Get(id)
 	if err != nil {
 		http.Error(w, "Not found", http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Location", originalUrl)
+	w.Header().Set("Location", originalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
