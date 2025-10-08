@@ -68,14 +68,14 @@ func (h *Handler) ShortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortenedUrl, err := h.service.Shorten(input.URL)
+	shortenedURL, err := h.service.Shorten(input.URL)
 	if err != nil {
 		http.Error(w, "Error shortening URL", http.StatusInternalServerError)
 		return
 	}
 
 	output := model.Response{
-		Result: shortenedUrl,
+		Result: shortenedURL,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

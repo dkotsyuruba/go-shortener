@@ -122,6 +122,8 @@ func TestShortenAPI(t *testing.T) {
 
 	var resp = model.Response{}
 	err := json.NewDecoder(res.Body).Decode(&resp)
+
+	defer res.Body.Close()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resp.Result)
 }
