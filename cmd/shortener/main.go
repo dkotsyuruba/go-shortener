@@ -25,7 +25,7 @@ func main() {
 	cfg := config.InitConfig()
 	repo := repository.NewRepository(cfg.Service.FileStorage)
 	loadedLinks, err := repo.LoadFromFile(cfg.Service.FileStorage)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		logger.Fatal("loading data from file failed", zap.Error(err))
 	}
 	logger.Info("loaded", zap.Int("count", len(loadedLinks)), zap.String("filename", cfg.Service.FileStorage))
