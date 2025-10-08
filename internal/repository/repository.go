@@ -8,8 +8,10 @@ import (
 type Repository interface {
 	Save(link *model.Link) error
 	FindByID(id string) (*model.Link, bool)
+	Persist(filename string) error
+	LoadFromFile(filename string) (map[string]*model.Link, error)
 }
 
-func NewRepository() Repository {
-	return memory.NewMemoryRepository()
+func NewRepository(filename string) Repository {
+	return memory.NewMemoryRepository(filename)
 }

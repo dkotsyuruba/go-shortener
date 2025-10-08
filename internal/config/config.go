@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 
+	"github.com/caarlos0/env"
 	"github.com/dkotsyuruba/go-shortener/internal/model"
 )
 
@@ -16,13 +17,28 @@ func InitConfig() *Config {
 		Server:  &model.ServerConfig{},
 		Service: &model.ServiceConfig{},
 	}
-	cfg.LoadConfig()
+
+	cfg.LoadCommandLineConfig()
+	cfg.LoadEnvConfig()
 
 	return &cfg
 }
 
-func (c *Config) LoadConfig() {
-	flag.StringVar(&c.Server.Port, "a", ":8080", "HTTP server startup address")
-	flag.StringVar(&c.Service.BaseURL, "b", "http://localhost:8080", "Base URL for shortened URL")
+func (c *Config) LoadEnvConfig() error {
+	if err := env.Parse(c.Server); err != nil {
+		return err
+	}
+
+	if err := env.Parse(c.Service); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) LoadCommandLineConfig() {
+	flag.StringVar(&c.Server.Address, "a", ":8080", "HTTP server startup address")
+	flag.StringVar(&c.Service.BaseURL, "b", "http://localhost:8080", "Base URL for shortened URLs")
+	flag.StringVar(&c.Service.FileStorage, "f", "go-shortener/storage.json", "File storage for shortened URLs")
 	flag.Parse()
 }

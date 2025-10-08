@@ -6,9 +6,18 @@ type Link struct {
 }
 
 type ServerConfig struct {
-	Port string
+	Address string `env:"SERVER_ADDRESS"`
 }
 
 type ServiceConfig struct {
-	BaseURL string
+	BaseURL     string `env:"BASE_URL"`
+	FileStorage string `env:"FILE_STORAGE_PATH"`
+}
+
+type Request struct {
+	URL string `json:"url"`
+}
+
+type Response struct {
+	Result string `json:"result"`
 }

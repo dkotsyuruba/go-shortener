@@ -3,6 +3,7 @@ package handler_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -14,6 +15,10 @@ import (
 
 	"github.com/dkotsyuruba/go-shortener/internal/handler"
 	mocks "github.com/dkotsyuruba/go-shortener/internal/handler/mocks"
+	"github.com/dkotsyuruba/go-shortener/internal/model"
+	"github.com/dkotsyuruba/go-shortener/internal/repository"
+	"github.com/dkotsyuruba/go-shortener/internal/service"
+	"github.com/dkotsyuruba/go-shortener/pkg/shortener"
 )
 
 func TestShortenSuccess(t *testing.T) {
@@ -91,6 +96,34 @@ func TestGetFailure(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestShortenAPI(t *testing.T) {
+	mockRepo := repository.NewRepository("test.json")
+	cfg := &model.ServiceConfig{
+		BaseURL: "http://localhost:8080",
+	}
+
+	shortenerService := shortener.NewRealShortenerService()
+	srv := service.NewService(mockRepo, cfg, shortenerService)
+	handlers := handler.NewHandler(srv)
+
+	body := `{"url": "https://practicum.yandex.ru"}`
+	reader := bytes.NewBufferString(body)
+	req := httptest.NewRequest("POST", "/api/shorten", reader)
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder := httptest.NewRecorder()
+	handlers.ShortenJSON(recorder, req)
+
+	res := recorder.Result()
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+
+	var resp = model.Response{}
+	err := json.NewDecoder(res.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, resp.Result)
 }
 
 func readResponse(body io.Reader) string {
