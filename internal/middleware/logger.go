@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"time"
 
@@ -11,37 +13,49 @@ func LoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			startTime := time.Now()
-			resp := &ResponseProxy{w: w}
-			next.ServeHTTP(resp, req)
+			requestBody, _ := ReadRequestBody(req)
+			recorder := &ResponseRecorder{
+				ResponseWriter: w,
+			}
+			next.ServeHTTP(recorder, req)
 			logger.Info(
 				"handled request",
 				zap.String("uri", req.RequestURI),
 				zap.String("method", req.Method),
 				zap.Duration("duration", time.Since(startTime)),
-				zap.Int("status_code", resp.statusCode),
-				zap.Int("size_bytes", resp.size),
+				zap.Int("status_code", recorder.Status),
+				zap.Int("size_bytes", recorder.Size),
+				zap.ByteString("request_body", requestBody),
+				zap.ByteString("response_body", recorder.Body.Bytes()),
 			)
 		})
 	}
 }
 
-type ResponseProxy struct {
-	statusCode int
-	size       int
-	w          http.ResponseWriter
+func ReadRequestBody(req *http.Request) ([]byte, error) {
+	bodyBytes, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+	req.Body.Close()
+	req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	return bodyBytes, nil
 }
 
-func (rp *ResponseProxy) Write(data []byte) (int, error) {
-	size, err := rp.w.Write(data)
-	rp.size += size
-	return size, err
+type ResponseRecorder struct {
+	http.ResponseWriter
+	Body      bytes.Buffer
+	Status    int
+	Size      int
+	Wrote     bool
+	HeaderMap http.Header
 }
 
-func (rp *ResponseProxy) Header() http.Header {
-	return rp.w.Header()
-}
-
-func (rp *ResponseProxy) WriteHeader(statusCode int) {
-	rp.statusCode = statusCode
-	rp.w.WriteHeader(statusCode)
+func (recorder *ResponseRecorder) Write(b []byte) (int, error) {
+	recorder.Size += len(b)
+	n, err := recorder.Body.Write(b)
+	if err != nil {
+		return n, err
+	}
+	return recorder.ResponseWriter.Write(b)
 }

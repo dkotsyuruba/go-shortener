@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dkotsyuruba/go-shortener/internal/model"
@@ -27,6 +28,10 @@ func NewService(
 }
 
 func (s *Service) Shorten(originalURL string) (string, error) {
+	if originalURL == "" {
+		return "", errors.New("empty URL")
+	}
+
 	id, err := s.shortener.GenerateID()
 	if err != nil {
 		return "", err
@@ -37,12 +42,40 @@ func (s *Service) Shorten(originalURL string) (string, error) {
 		OriginalURL: originalURL,
 	}
 
-	err = s.repo.Save(newLink)
-	if err != nil {
-		return "", err
+	link, err := s.repo.Save(newLink)
+
+	return s.cfg.BaseURL + "/" + link.ID, err
+}
+
+func (s *Service) ShortenBatch(batch []*model.BatchShortenRequest) ([]*model.BatchShortenResponse, error) {
+	modelLinks := make([]*model.Link, len(batch))
+	results := make([]*model.BatchShortenResponse, len(batch))
+
+	for idx, item := range batch {
+		id, err := s.shortener.GenerateID()
+		if err != nil {
+			return nil, err
+		}
+
+		link := &model.Link{
+			ID:          id,
+			OriginalURL: item.OriginalURL,
+		}
+
+		results[idx] = &model.BatchShortenResponse{
+			CorrelationID: item.CorrelationID,
+			ShortURL:      s.cfg.BaseURL + "/" + link.ID,
+		}
+
+		modelLinks[idx] = link
 	}
 
-	return s.cfg.BaseURL + "/" + id, nil
+	err := s.repo.SaveAll(modelLinks)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (s *Service) Get(id string) (string, error) {
@@ -52,4 +85,13 @@ func (s *Service) Get(id string) (string, error) {
 	}
 
 	return link.OriginalURL, nil
+}
+
+func (s *Service) Ping() error {
+	err := s.repo.Ping()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
