@@ -2,10 +2,15 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5"
+	_ "github.com/lib/pq"
 
 	"github.com/dkotsyuruba/go-shortener/internal/model"
-
-	_ "github.com/lib/pq"
 )
 
 type PostgresRepository struct {
@@ -18,7 +23,32 @@ func NewPostgresRepository(dsn string) (*PostgresRepository, error) {
 		return nil, err
 	}
 
-	return &PostgresRepository{db: db}, nil
+	repo := &PostgresRepository{db: db}
+	err = repo.Init(dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo, nil
+}
+
+func (pr *PostgresRepository) Init(dsn string) error {
+	config, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		return err
+	}
+
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", config.User, config.Password, config.Host, config.Port, config.Database)
+	m, err := migrate.New("file://migrations", connString)
+	if err != nil {
+		return err
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
 }
 
 func (pr *PostgresRepository) Save(link *model.Link) (*model.Link, error) {
