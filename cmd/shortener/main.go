@@ -24,7 +24,7 @@ func main() {
 
 	cfg := config.InitConfig()
 	repo, err := repository.NewRepository(cfg)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		logger.Fatal("repository initialization failed", zap.Error(err))
 	}
 
