@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"github.com/dkotsyuruba/go-shortener/internal/handler"
 	mocks "github.com/dkotsyuruba/go-shortener/internal/handler/mocks"
@@ -18,7 +19,7 @@ import (
 
 func TestShortenSuccess(t *testing.T) {
 	mockService := new(mocks.MockService)
-	handler := handler.NewHandler(mockService)
+	handler := handler.NewHandler(mockService, zap.NewNop())
 
 	reqBody := []byte("https://example.com/test-url")
 	recorder := httptest.NewRecorder()
@@ -37,7 +38,7 @@ func TestShortenSuccess(t *testing.T) {
 
 func TestShortenFailure(t *testing.T) {
 	mockService := new(mocks.MockService)
-	handler := handler.NewHandler(mockService)
+	handler := handler.NewHandler(mockService, zap.NewNop())
 
 	reqBody := []byte("https://example.com/test-url")
 	recorder := httptest.NewRecorder()
@@ -54,7 +55,7 @@ func TestShortenFailure(t *testing.T) {
 
 func TestGetSuccess(t *testing.T) {
 	mockService := new(mocks.MockService)
-	handler := handler.NewHandler(mockService)
+	handler := handler.NewHandler(mockService, zap.NewNop())
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/abcdef", nil)
@@ -75,7 +76,7 @@ func TestGetSuccess(t *testing.T) {
 
 func TestGetFailure(t *testing.T) {
 	mockService := new(mocks.MockService)
-	handler := handler.NewHandler(mockService)
+	handler := handler.NewHandler(mockService, zap.NewNop())
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/nonexistent-id", nil)
