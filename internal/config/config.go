@@ -8,16 +8,18 @@ import (
 )
 
 type Config struct {
-	Server   *model.ServerConfig
-	Service  *model.ServiceConfig
-	DataBase *model.DatabaseConfig
+	Server     *model.ServerConfig
+	Service    *model.ServiceConfig
+	DataBase   *model.DatabaseConfig
+	AuthConfig *model.AuthConfig
 }
 
 func InitConfig() *Config {
 	cfg := Config{
-		Server:   &model.ServerConfig{},
-		Service:  &model.ServiceConfig{},
-		DataBase: &model.DatabaseConfig{},
+		Server:     &model.ServerConfig{},
+		Service:    &model.ServiceConfig{},
+		DataBase:   &model.DatabaseConfig{},
+		AuthConfig: &model.AuthConfig{},
 	}
 
 	cfg.LoadCommandLineConfig()
@@ -39,6 +41,10 @@ func (c *Config) LoadEnvConfig() error {
 		return err
 	}
 
+	if err := env.Parse(c.AuthConfig); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -47,5 +53,6 @@ func (c *Config) LoadCommandLineConfig() {
 	flag.StringVar(&c.Service.BaseURL, "b", "http://localhost:8080", "Base URL for shortened URLs")
 	flag.StringVar(&c.Service.FileStorage, "f", "storage.json", "File storage for shortened URLs")
 	flag.StringVar(&c.DataBase.DSN, "d", "", "PostgreSQL connection string")
+	flag.StringVar(&c.AuthConfig.SecretKey, "k", "secret", "Secret key for authentification")
 	flag.Parse()
 }

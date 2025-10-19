@@ -9,7 +9,15 @@ import (
 	"github.com/dkotsyuruba/go-shortener/pkg/shortener"
 )
 
-type Service struct {
+type Service interface {
+	Shorten(url string, userID string) (string, error)
+	Get(id string) (string, error)
+	GetAllByUserID(id string) ([]model.UserURLResponse, error)
+	Ping() error
+	ShortenBatch(batch []*model.BatchShortenRequest, userID string) ([]*model.BatchShortenResponse, error)
+}
+
+type service struct {
 	repo      repository.Repository
 	cfg       *model.ServiceConfig
 	shortener shortener.ShortenerService
@@ -19,15 +27,15 @@ func NewService(
 	repository repository.Repository,
 	config *model.ServiceConfig,
 	shortener shortener.ShortenerService,
-) *Service {
-	return &Service{
+) Service {
+	return &service{
 		repo:      repository,
 		cfg:       config,
 		shortener: shortener,
 	}
 }
 
-func (s *Service) Shorten(originalURL string) (string, error) {
+func (s *service) Shorten(originalURL string, userID string) (string, error) {
 	if originalURL == "" {
 		return "", errors.New("empty URL")
 	}
@@ -40,6 +48,7 @@ func (s *Service) Shorten(originalURL string) (string, error) {
 	newLink := &model.Link{
 		ID:          id,
 		OriginalURL: originalURL,
+		UUID:        userID,
 	}
 
 	link, err := s.repo.Save(newLink)
@@ -47,7 +56,7 @@ func (s *Service) Shorten(originalURL string) (string, error) {
 	return s.cfg.BaseURL + "/" + link.ID, err
 }
 
-func (s *Service) ShortenBatch(batch []*model.BatchShortenRequest) ([]*model.BatchShortenResponse, error) {
+func (s *service) ShortenBatch(batch []*model.BatchShortenRequest, userID string) ([]*model.BatchShortenResponse, error) {
 	modelLinks := make([]*model.Link, len(batch))
 	results := make([]*model.BatchShortenResponse, len(batch))
 
@@ -60,6 +69,7 @@ func (s *Service) ShortenBatch(batch []*model.BatchShortenRequest) ([]*model.Bat
 		link := &model.Link{
 			ID:          id,
 			OriginalURL: item.OriginalURL,
+			UUID:        userID,
 		}
 
 		results[idx] = &model.BatchShortenResponse{
@@ -78,7 +88,7 @@ func (s *Service) ShortenBatch(batch []*model.BatchShortenRequest) ([]*model.Bat
 	return results, nil
 }
 
-func (s *Service) Get(id string) (string, error) {
+func (s *service) Get(id string) (string, error) {
 	link, found := s.repo.FindByID(id)
 	if !found {
 		return "", fmt.Errorf("no such short URL (%s)", id)
@@ -87,11 +97,23 @@ func (s *Service) Get(id string) (string, error) {
 	return link.OriginalURL, nil
 }
 
-func (s *Service) Ping() error {
-	err := s.repo.Ping()
+func (s *service) GetAllByUserID(id string) ([]model.UserURLResponse, error) {
+	links, err := s.repo.FindAllByUserID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	response := make([]model.UserURLResponse, len(links))
+	for i, url := range links {
+		response[i] = model.UserURLResponse{
+			ShortURL:    s.cfg.BaseURL + "/" + url.ID,
+			OriginalURL: url.OriginalURL,
+		}
+	}
+
+	return response, nil
+}
+
+func (s *service) Ping() error {
+	return s.repo.Ping()
 }

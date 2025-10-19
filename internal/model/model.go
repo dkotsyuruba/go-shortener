@@ -5,6 +5,7 @@ import "errors"
 type Link struct {
 	ID          string `json:"id"`
 	OriginalURL string `json:"original_url"`
+	UUID        string `json:"user_id"`
 }
 
 type ServerConfig struct {
@@ -18,6 +19,10 @@ type ServiceConfig struct {
 
 type DatabaseConfig struct {
 	DSN string `env:"DATABASE_DSN"`
+}
+
+type AuthConfig struct {
+	SecretKey string `env:"SECRET_KEY"`
 }
 
 type ShortenRequest struct {
@@ -38,4 +43,14 @@ type BatchShortenResponse struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type UserURLResponse struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+type contextKey string
+
+var UserIDContextKey = contextKey("user_id")
+
 var ErrDuplicatedURL = errors.New("URL already exists")
+var ErrNotFound = errors.New("URL nor found")

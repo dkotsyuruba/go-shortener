@@ -10,21 +10,16 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/dkotsyuruba/go-shortener/internal/model"
+	"github.com/dkotsyuruba/go-shortener/internal/service"
+	"github.com/dkotsyuruba/go-shortener/internal/utils"
 )
 
-type Service interface {
-	Shorten(url string) (string, error)
-	Get(id string) (string, error)
-	Ping() error
-	ShortenBatch(batch []*model.BatchShortenRequest) ([]*model.BatchShortenResponse, error)
-}
-
 type Handler struct {
-	service Service
+	service service.Service
 	logger  *zap.Logger
 }
 
-func NewHandler(service Service, logger *zap.Logger) *Handler {
+func NewHandler(service service.Service, logger *zap.Logger) *Handler {
 	return &Handler{
 		service: service,
 		logger:  logger,
@@ -41,7 +36,9 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortenURL, err := h.service.Shorten(string(originalURL))
+	userID, _ := utils.GetUserID(r)
+
+	shortenURL, err := h.service.Shorten(string(originalURL), userID)
 	if err != nil && err != model.ErrDuplicatedURL {
 		h.logger.Error(err.Error())
 		http.Error(w, "Error shortening URL", http.StatusInternalServerError)
@@ -55,7 +52,7 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
-	w.Write([]byte(string(shortenURL)))
+	w.Write([]byte(shortenURL))
 }
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
@@ -73,22 +70,24 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ShortenJSON(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	input := model.ShortenRequest{}
-	err := decoder.Decode(&input)
+	var request model.ShortenRequest
+	err := decoder.Decode(&request)
 	if err != nil {
 		h.logger.Error(err.Error())
 		http.Error(w, "Malformed input data", http.StatusBadRequest)
 		return
 	}
 
-	shortenedURL, err := h.service.Shorten(input.URL)
+	userID, _ := utils.GetUserID(r)
+
+	shortenedURL, err := h.service.Shorten(request.URL, userID)
 	if err != nil && err != model.ErrDuplicatedURL {
 		h.logger.Error(err.Error())
 		http.Error(w, "Error shortening URL", http.StatusInternalServerError)
 		return
 	}
 
-	output := model.ShortenResponse{
+	result := model.ShortenResponse{
 		Result: shortenedURL,
 	}
 
@@ -98,7 +97,12 @@ func (h *Handler) ShortenJSON(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
-	json.NewEncoder(w).Encode(output)
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		h.logger.Error(err.Error())
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +114,9 @@ func (h *Handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.ShortenBatch(batch)
+	userID, _ := utils.GetUserID(r)
+
+	result, err := h.service.ShortenBatch(batch, userID)
 	if err != nil {
 		h.logger.Error(err.Error())
 		http.Error(w, "Error while saving links", http.StatusInternalServerError)
@@ -119,7 +125,12 @@ func (h *Handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(result)
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		h.logger.Error(err.Error())
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
@@ -132,4 +143,33 @@ func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("pong"))
+}
+
+func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+	userID, ok := utils.GetUserID(r)
+	if !ok {
+		http.Error(w, "Unauthorized: user ID not found", http.StatusUnauthorized)
+		return
+	}
+
+	result, err := h.service.GetAllByUserID(userID)
+	if err != nil {
+		h.logger.Error(err.Error())
+		http.Error(w, "Error while getting links", http.StatusInternalServerError)
+		return
+	}
+
+	if len(result) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		h.logger.Error(err.Error())
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }

@@ -60,13 +60,13 @@ func (m *MemoryRepository) Save(link *model.Link) (*model.Link, error) {
 		return link, model.ErrDuplicatedURL
 	}
 
-	foundLink, ok := m.FindByOriginalURL(link.OriginalURL)
-	if ok {
-		return foundLink, model.ErrDuplicatedURL
+	for _, existingLink := range m.data {
+		if existingLink.OriginalURL == link.OriginalURL {
+			return existingLink, model.ErrDuplicatedURL
+		}
 	}
 
 	m.data[link.ID] = link
-
 	return link, nil
 }
 
@@ -76,8 +76,17 @@ func (m *MemoryRepository) SaveAll(links []*model.Link) error {
 
 	for _, link := range links {
 		if _, exists := m.data[link.ID]; exists {
-			continue
+			return model.ErrDuplicatedURL
 		}
+
+		for _, existing := range m.data {
+			if existing.OriginalURL == link.OriginalURL {
+				return model.ErrDuplicatedURL
+			}
+		}
+	}
+
+	for _, link := range links {
 		m.data[link.ID] = link
 	}
 
@@ -93,16 +102,29 @@ func (m *MemoryRepository) FindByID(id string) (*model.Link, bool) {
 	return link, ok
 }
 
-func (m *MemoryRepository) FindByOriginalURL(url string) (*model.Link, bool) {
+func (m *MemoryRepository) FindAllByUserID(userID string) ([]*model.Link, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var links []*model.Link
+
 	for _, link := range m.data {
-		if link.OriginalURL == url {
-			return link, true
+		if link.UUID == userID {
+			links = append(links, link)
 		}
 	}
-	return nil, false
+
+	if len(links) > 0 {
+		return links, nil
+	}
+
+	return nil, model.ErrNotFound
 }
 
 func (m *MemoryRepository) Close() error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	file, err := os.OpenFile(m.filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

@@ -11,7 +11,7 @@ type Repository interface {
 	Save(link *model.Link) (*model.Link, error)
 	SaveAll(links []*model.Link) error
 	FindByID(id string) (*model.Link, bool)
-	FindByOriginalURL(id string) (*model.Link, bool)
+	FindAllByUserID(id string) ([]*model.Link, error)
 	Ping() error
 	Close() error
 }

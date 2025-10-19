@@ -8,18 +8,22 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/dkotsyuruba/go-shortener/internal/config"
 	"github.com/dkotsyuruba/go-shortener/internal/handler"
 	"github.com/dkotsyuruba/go-shortener/internal/middleware"
 	"github.com/dkotsyuruba/go-shortener/internal/repository"
 	"github.com/dkotsyuruba/go-shortener/internal/service"
+	"github.com/dkotsyuruba/go-shortener/pkg/jwt"
 	"github.com/dkotsyuruba/go-shortener/pkg/shortener"
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
-	logger, _ := zap.NewProduction()
+	logCfg := zap.NewProductionConfig()
+	logCfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	logger, _ := logCfg.Build()
 	defer logger.Sync()
 
 	cfg := config.InitConfig()
@@ -32,14 +36,19 @@ func main() {
 	srv := service.NewService(repo, cfg.Service, shortener)
 	handlers := handler.NewHandler(srv, logger)
 
+	jwtManager := jwt.NewJWTManager(cfg.AuthConfig.SecretKey)
+	authMiddleware := middleware.NewAuthMiddleware(jwtManager, logger)
+
 	router := chi.NewRouter()
-	router.Use(middleware.LoggerMiddleware(logger))
 	router.Use(middleware.GzipMiddleware)
+	router.Use(authMiddleware.Authenticate)
+	router.Use(middleware.LoggerMiddleware(logger))
 	router.Get("/{id}", handlers.Get)
 	router.Get("/ping", handlers.Ping)
 	router.Post("/", handlers.Shorten)
 	router.Post("/api/shorten", handlers.ShortenJSON)
 	router.Post("/api/shorten/batch", handlers.ShortenBatch)
+	router.Get("/api/user/urls", handlers.GetUserURLs)
 
 	server := &http.Server{
 		Addr:         cfg.Server.Address,

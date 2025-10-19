@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/dkotsyuruba/go-shortener/internal/utils"
 )
 
 func LoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
@@ -18,6 +20,8 @@ func LoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
 				ResponseWriter: w,
 			}
 			next.ServeHTTP(recorder, req)
+
+			userID, _ := utils.GetUserID(req)
 			logger.Info(
 				"handled request",
 				zap.String("uri", req.RequestURI),
@@ -25,6 +29,7 @@ func LoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
 				zap.Duration("duration", time.Since(startTime)),
 				zap.Int("status_code", recorder.Status),
 				zap.Int("size_bytes", recorder.Size),
+				zap.String("user_id", userID),
 				zap.ByteString("request_body", requestBody),
 				zap.ByteString("response_body", recorder.Body.Bytes()),
 			)
