@@ -93,7 +93,7 @@ func (pr *PostgresRepository) SaveAll(links []*model.Link) error {
 	for _, link := range links {
 		_, err := tx.Exec(ctx, `
             INSERT INTO links (id, original_url, user_id) 
-            VALUES ($1, $2)
+            VALUES ($1, $2, $3)
             ON CONFLICT DO NOTHING
         `, link.ID, link.OriginalURL, link.UUID)
 
