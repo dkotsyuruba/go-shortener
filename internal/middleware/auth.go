@@ -14,11 +14,11 @@ import (
 const CookieName = "User"
 
 type AuthMiddleware struct {
-	jwtManager *jwtpkg.JWTManager
+	jwtManager jwtpkg.JWTManager
 	logger     *zap.Logger
 }
 
-func NewAuthMiddleware(jwtManager *jwtpkg.JWTManager, logger *zap.Logger) *AuthMiddleware {
+func NewAuthMiddleware(jwtManager jwtpkg.JWTManager, logger *zap.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		jwtManager: jwtManager,
 		logger:     logger,

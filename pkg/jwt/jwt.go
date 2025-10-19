@@ -13,17 +13,22 @@ var (
 	ErrMissingUserID = errors.New("missing user ID in token")
 )
 
-type JWTManager struct {
+type JWTManager interface {
+	GenerateToken(userID string) (string, error)
+	ValidateToken(token string) (string, error)
+}
+
+type jwtManager struct {
 	secretKey []byte
 }
 
-func NewJWTManager(secretKey string) *JWTManager {
-	return &JWTManager{
+func NewJWTManager(secretKey string) JWTManager {
+	return &jwtManager{
 		secretKey: []byte(secretKey),
 	}
 }
 
-func (m *JWTManager) GenerateToken(userID string) (string, error) {
+func (m *jwtManager) GenerateToken(userID string) (string, error) {
 	if userID == "" {
 		userIDBytes := make([]byte, 16)
 		_, err := rand.Read(userIDBytes)
@@ -46,7 +51,7 @@ func (m *JWTManager) GenerateToken(userID string) (string, error) {
 	return hex.EncodeToString(tokenBytes), nil
 }
 
-func (m *JWTManager) ValidateToken(tokenString string) (string, error) {
+func (m *jwtManager) ValidateToken(tokenString string) (string, error) {
 	tokenBytes, err := hex.DecodeString(tokenString)
 	if err != nil {
 		return "", ErrInvalidToken
@@ -73,8 +78,4 @@ func (m *JWTManager) ValidateToken(tokenString string) (string, error) {
 	}
 
 	return userID, nil
-}
-
-func (m *JWTManager) ExtractUserID(tokenString string) (string, error) {
-	return m.ValidateToken(tokenString)
 }

@@ -24,9 +24,12 @@ func (mr *MockRepository) FindByID(id string) (*model.Link, bool) {
 	return args.Get(0).(*model.Link), args.Bool(1)
 }
 
-func (mr *MockRepository) FindByOriginalURL(url string) (*model.Link, bool) {
-	args := mr.Called(url)
-	return args.Get(0).(*model.Link), args.Bool(1)
+func (m *MockRepository) FindAllByUserID(userID string) ([]*model.Link, error) {
+	args := m.Called(userID)
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*model.Link), nil
 }
 
 func (mr *MockRepository) Close() error {
