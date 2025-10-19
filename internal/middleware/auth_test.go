@@ -128,5 +128,8 @@ func TestGenerateTokenError(t *testing.T) {
 	handler := authMiddleware.Authenticate(testHandler)
 	handler.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }
