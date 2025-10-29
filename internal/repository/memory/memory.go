@@ -51,8 +51,22 @@ func (m *MemoryRepository) Persist(filename string) error {
 	}
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	return encoder.Encode(m.data)
+	urls := make([]*model.Link, 0, len(m.data))
+	for _, v := range m.data {
+		urls = append(urls, v)
+	}
+
+	data, err := json.Marshal(urls)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *MemoryRepository) LoadFromFile(filename string) (map[string]*model.Link, error) {
@@ -70,12 +84,14 @@ func (m *MemoryRepository) LoadFromFile(filename string) (map[string]*model.Link
 		return nil, err
 	}
 
-	var links map[string]*model.Link
-	err = json.Unmarshal(content, &links)
-	if err != nil {
+	var links []*model.Link
+	if err := json.Unmarshal(content, &links); err != nil {
 		return nil, err
 	}
 
-	m.data = links
+	for _, link := range links {
+		m.data[link.ID] = link
+	}
+
 	return m.data, nil
 }

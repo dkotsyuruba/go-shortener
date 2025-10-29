@@ -93,7 +93,7 @@ func TestLoadFromFile(t *testing.T) {
 		tmpFile, _ := os.CreateTemp("", "test.json")
 		defer os.Remove(tmpFile.Name())
 
-		jsonData := []byte(`{"jkl012":{"ID":"jkl012","OriginalURL":"https://some-url.com"}}`)
+		jsonData := []byte(`[{"ID":"jkl012","OriginalURL":"https://some-url.com"}]`)
 		os.WriteFile(tmpFile.Name(), jsonData, 0644)
 
 		loadedLinks, err := repo.LoadFromFile(tmpFile.Name())
