@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dkotsyuruba/go-shortener/internal/model"
 )
 
 type Service interface {
@@ -54,4 +57,28 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Location", originalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (h *Handler) ShortenJSON(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	input := model.Request{}
+	err := decoder.Decode(&input)
+	if err != nil {
+		http.Error(w, "Malformed input data", http.StatusBadRequest)
+		return
+	}
+
+	shortenedURL, err := h.service.Shorten(input.URL)
+	if err != nil {
+		http.Error(w, "Error shortening URL", http.StatusInternalServerError)
+		return
+	}
+
+	output := model.Response{
+		Result: shortenedURL,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(output)
 }
