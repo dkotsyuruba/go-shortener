@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,7 +20,12 @@ import (
 )
 
 func main() {
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		fmt.Printf("Logger initialization error: %v\n", err)
+		os.Exit(1)
+	}
+
 	defer logger.Sync()
 
 	cfg := config.InitConfig()

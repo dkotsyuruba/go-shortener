@@ -98,7 +98,6 @@ func TestPingSuccess(t *testing.T) {
 func TestFindByOriginalURLSuccess(t *testing.T) {
 	repo, err := NewMemoryRepository(testFilename)
 	require.NoError(t, err)
-
 	link := &model.Link{
 		ID:          "def456",
 		OriginalURL: "https://another-site.org",

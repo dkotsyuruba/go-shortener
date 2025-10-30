@@ -109,8 +109,22 @@ func (m *MemoryRepository) Close() error {
 	}
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	return encoder.Encode(m.data)
+	urls := make([]*model.Link, 0, len(m.data))
+	for _, v := range m.data {
+		urls = append(urls, v)
+	}
+
+	data, err := json.Marshal(urls)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *MemoryRepository) Ping() error {
