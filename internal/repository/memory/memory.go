@@ -42,13 +42,15 @@ func (m *MemoryRepository) Init() error {
 		return err
 	}
 
-	var links map[string]*model.Link
-	err = json.Unmarshal(content, &links)
-	if err != nil {
+	var links []*model.Link
+	if err := json.Unmarshal(content, &links); err != nil {
 		return err
 	}
 
-	m.data = links
+	for _, link := range links {
+		m.data[link.ID] = link
+	}
+
 	return nil
 }
 
