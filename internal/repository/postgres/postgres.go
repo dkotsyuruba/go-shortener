@@ -2,12 +2,15 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 
 	"github.com/dkotsyuruba/go-shortener/internal/model"
@@ -54,22 +57,19 @@ func (pr *PostgresRepository) Init(dsn string) error {
 func (pr *PostgresRepository) Save(link *model.Link) (*model.Link, error) {
 	query := `
 	INSERT INTO links (id, original_url) VALUES ($1, $2)
-	ON CONFLICT DO NOTHING
 	`
-	result, err := pr.db.Exec(query, link.ID, link.OriginalURL)
-	if err != nil {
-		return link, err
-	}
+	_, err := pr.db.Exec(query, link.ID, link.OriginalURL)
 
-	rows, err := result.RowsAffected()
 	if err != nil {
-		return link, err
-	}
-
-	if rows == 0 {
-		foundLink, ok := pr.FindByOriginalURL(link.OriginalURL)
-		if ok {
-			return foundLink, model.ErrDuplicatedURL
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				foundLink, found := pr.FindByOriginalURL(link.OriginalURL)
+				if found {
+					return foundLink, model.ErrDuplicatedURL
+				}
+			}
+		} else {
+			return link, err
 		}
 	}
 
@@ -115,7 +115,7 @@ func (pr *PostgresRepository) FindByID(id string) (*model.Link, bool) {
 	var link model.Link
 	err := pr.db.QueryRow(query, id).Scan(&link.ID, &link.OriginalURL)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, false
 		}
 		return nil, false
@@ -131,7 +131,7 @@ func (pr *PostgresRepository) FindByOriginalURL(url string) (*model.Link, bool) 
 	var link model.Link
 	err := pr.db.QueryRow(query, url).Scan(&link.ID, &link.OriginalURL)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, false
 		}
 		return nil, false
