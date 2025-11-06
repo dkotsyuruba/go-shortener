@@ -11,13 +11,13 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 
 	"github.com/dkotsyuruba/go-shortener/internal/model"
 )
 
 type PostgresRepository struct {
-	db *sql.DB
+	dsn string
+	db  *sql.DB
 }
 
 func NewPostgresRepository(dsn string) (*PostgresRepository, error) {
@@ -26,8 +26,12 @@ func NewPostgresRepository(dsn string) (*PostgresRepository, error) {
 		return nil, err
 	}
 
-	repo := &PostgresRepository{db: db}
-	err = repo.Init(dsn)
+	repo := &PostgresRepository{
+		dsn: dsn,
+		db:  db,
+	}
+
+	err = repo.Ping()
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +39,8 @@ func NewPostgresRepository(dsn string) (*PostgresRepository, error) {
 	return repo, nil
 }
 
-func (pr *PostgresRepository) Init(dsn string) error {
-	config, err := pgx.ParseConfig(dsn)
+func (pr *PostgresRepository) Migrate() error {
+	config, err := pgx.ParseConfig(pr.dsn)
 	if err != nil {
 		return err
 	}

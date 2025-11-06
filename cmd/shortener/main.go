@@ -33,6 +33,10 @@ func main() {
 	if err != nil && !os.IsNotExist(err) {
 		logger.Fatal("repository initialization failed", zap.Error(err))
 	}
+	err = repo.Migrate()
+	if err != nil {
+		logger.Fatal("DB migration failed", zap.Error(err))
+	}
 
 	shortener := shortener.NewRealShortenerService()
 	srv := service.NewService(repo, cfg.Service, shortener)

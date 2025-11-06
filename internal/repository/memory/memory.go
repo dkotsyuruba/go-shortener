@@ -27,6 +27,10 @@ func NewMemoryRepository(filename string) (*MemoryRepository, error) {
 	return repo, nil
 }
 
+func (m *MemoryRepository) Migrate() error {
+	return nil
+}
+
 func (m *MemoryRepository) Init() error {
 	info, err := os.Stat(m.filename)
 	if os.IsNotExist(err) {

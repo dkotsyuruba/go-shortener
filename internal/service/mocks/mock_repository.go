@@ -38,3 +38,8 @@ func (mr *MockRepository) Ping() error {
 	args := mr.Called()
 	return args.Error(0)
 }
+
+func (mr *MockRepository) Migrate() error {
+	args := mr.Called()
+	return args.Error(0)
+}

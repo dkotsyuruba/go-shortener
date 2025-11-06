@@ -8,6 +8,7 @@ import (
 )
 
 type Repository interface {
+	Migrate() error
 	Save(link *model.Link) (*model.Link, error)
 	SaveAll(links []*model.Link) error
 	FindByID(id string) (*model.Link, bool)

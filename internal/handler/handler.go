@@ -127,7 +127,7 @@ func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Ping()
 	if err != nil {
 		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error while pinging DB", http.StatusInternalServerError)
 		return
 	}
 
