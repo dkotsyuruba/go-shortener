@@ -29,23 +29,27 @@ func main() {
 	defer logger.Sync()
 
 	cfg := config.InitConfig()
-	repo := repository.NewRepository(cfg.Service.FileStorage)
-	loadedLinks, err := repo.LoadFromFile(cfg.Service.FileStorage)
+	repo, err := repository.NewRepository(cfg)
 	if err != nil && !os.IsNotExist(err) {
-		logger.Fatal("loading data from file failed", zap.Error(err))
+		logger.Fatal("repository initialization failed", zap.Error(err))
 	}
-	logger.Info("loaded", zap.Int("count", len(loadedLinks)), zap.String("filename", cfg.Service.FileStorage))
+	err = repo.Migrate()
+	if err != nil {
+		logger.Fatal("DB migration failed", zap.Error(err))
+	}
 
 	shortener := shortener.NewRealShortenerService()
 	srv := service.NewService(repo, cfg.Service, shortener)
-	handlers := handler.NewHandler(srv)
+	handlers := handler.NewHandler(srv, logger)
 
 	router := chi.NewRouter()
 	router.Use(middleware.LoggerMiddleware(logger))
 	router.Use(middleware.GzipMiddleware)
-	router.Post("/", handlers.Shorten)
 	router.Get("/{id}", handlers.Get)
+	router.Get("/ping", handlers.Ping)
+	router.Post("/", handlers.Shorten)
 	router.Post("/api/shorten", handlers.ShortenJSON)
+	router.Post("/api/shorten/batch", handlers.ShortenBatch)
 
 	server := &http.Server{
 		Addr:         cfg.Server.Address,
@@ -76,8 +80,8 @@ func main() {
 		logger.Fatal("shutdown error", zap.Error(err))
 	}
 
-	if err := repo.Persist(cfg.Service.FileStorage); err != nil {
-		logger.Fatal("saving data to file failed", zap.Error(err))
+	if err := repo.Close(); err != nil {
+		logger.Fatal("repository shut down failed", zap.Error(err))
 	}
 
 	logger.Info("server shut down successfully")

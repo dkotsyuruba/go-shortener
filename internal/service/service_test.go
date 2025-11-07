@@ -22,7 +22,10 @@ func TestShortenSuccess(t *testing.T) {
 	id := "abc123"
 
 	mockRepo := new(mocks.MockRepository)
-	mockRepo.On("Save", mock.AnythingOfType("*model.Link")).Return(nil)
+	mockRepo.On("Save", mock.AnythingOfType("*model.Link")).Return(&model.Link{
+		ID:          id,
+		OriginalURL: originalURL,
+	}, nil)
 	mockShortener := new(mocks.MockShortener)
 	mockShortener.On("GenerateID").Return(id)
 
@@ -44,7 +47,10 @@ func TestShortenFailure(t *testing.T) {
 	id := "abc123"
 
 	mockRepo := new(mocks.MockRepository)
-	mockRepo.On("Save", mock.AnythingOfType("*model.Link")).Return(errors.New("database failure"))
+	mockRepo.On("Save", mock.AnythingOfType("*model.Link")).Return(&model.Link{
+		ID:          id,
+		OriginalURL: originalURL,
+	}, errors.New("database failure"))
 	mockShortener := new(mocks.MockShortener)
 	mockShortener.On("GenerateID").Return(id)
 
@@ -52,7 +58,8 @@ func TestShortenFailure(t *testing.T) {
 
 	shortenedURL, err := s.Shorten(originalURL)
 	require.Error(t, err)
-	assert.Empty(t, shortenedURL)
+	expectedShortenedURL := config.BaseURL + "/" + id
+	assert.Equal(t, expectedShortenedURL, shortenedURL)
 }
 
 func TestGetSuccess(t *testing.T) {

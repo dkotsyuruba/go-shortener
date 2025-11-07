@@ -2,7 +2,6 @@ package memory
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"sync"
 
@@ -15,22 +14,78 @@ type MemoryRepository struct {
 	mu       sync.RWMutex
 }
 
-func NewMemoryRepository(filename string) *MemoryRepository {
-	return &MemoryRepository{
+func NewMemoryRepository(filename string) (*MemoryRepository, error) {
+	repo := &MemoryRepository{
 		filename: filename,
 		data:     make(map[string]*model.Link),
 	}
+
+	if err := repo.Init(); err != nil {
+		return repo, err
+	}
+
+	return repo, nil
 }
 
-func (m *MemoryRepository) Save(link *model.Link) error {
+func (m *MemoryRepository) Migrate() error {
+	return nil
+}
+
+func (m *MemoryRepository) Init() error {
+	info, err := os.Stat(m.filename)
+	if os.IsNotExist(err) {
+		return err
+	}
+
+	if info.Size() == 0 {
+		return nil
+	}
+
+	content, err := os.ReadFile(m.filename)
+	if err != nil {
+		return err
+	}
+
+	var links []*model.Link
+	if err := json.Unmarshal(content, &links); err != nil {
+		return err
+	}
+
+	for _, link := range links {
+		m.data[link.ID] = link
+	}
+
+	return nil
+}
+
+func (m *MemoryRepository) Save(link *model.Link) (*model.Link, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if _, exists := m.data[link.ID]; exists {
-		return errors.New("duplicate key")
+		return link, model.ErrDuplicatedURL
+	}
+
+	foundLink, ok := m.FindByOriginalURL(link.OriginalURL)
+	if ok {
+		return foundLink, model.ErrDuplicatedURL
 	}
 
 	m.data[link.ID] = link
+
+	return link, nil
+}
+
+func (m *MemoryRepository) SaveAll(links []*model.Link) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, link := range links {
+		if _, exists := m.data[link.ID]; exists {
+			continue
+		}
+		m.data[link.ID] = link
+	}
 
 	return nil
 }
@@ -44,8 +99,17 @@ func (m *MemoryRepository) FindByID(id string) (*model.Link, bool) {
 	return link, ok
 }
 
-func (m *MemoryRepository) Persist(filename string) error {
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+func (m *MemoryRepository) FindByOriginalURL(url string) (*model.Link, bool) {
+	for _, link := range m.data {
+		if link.OriginalURL == url {
+			return link, true
+		}
+	}
+	return nil, false
+}
+
+func (m *MemoryRepository) Close() error {
+	file, err := os.OpenFile(m.filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -69,29 +133,10 @@ func (m *MemoryRepository) Persist(filename string) error {
 	return nil
 }
 
-func (m *MemoryRepository) LoadFromFile(filename string) (map[string]*model.Link, error) {
-	info, err := os.Stat(filename)
+func (m *MemoryRepository) Ping() error {
+	_, err := os.Stat(m.filename)
 	if os.IsNotExist(err) {
-		return nil, err
+		return err
 	}
-
-	if info.Size() == 0 {
-		return nil, nil
-	}
-
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var links []*model.Link
-	if err := json.Unmarshal(content, &links); err != nil {
-		return nil, err
-	}
-
-	for _, link := range links {
-		m.data[link.ID] = link
-	}
-
-	return m.data, nil
+	return nil
 }
